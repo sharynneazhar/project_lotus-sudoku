@@ -4,3 +4,4 @@
 *.cabal
 Setup.hs
 dist/
+*.JPG
