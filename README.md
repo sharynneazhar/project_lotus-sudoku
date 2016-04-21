@@ -9,4 +9,4 @@ Fill in all cells such that
 
 #### Example 
 
-![Example](ExampleJPG.JPG)
+![Example](https://cloud.githubusercontent.com/assets/10108593/14727426/5fddf394-07f0-11e6-9fa3-1d3b132627d9.JPG)
