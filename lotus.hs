@@ -1,27 +1,13 @@
--- rules:
--- every arc contains the numbers 1 - 7
--- every ting of colors contains the numbers 1 - 7
--- no number can be repeaed in any ring or arc
-
--- result should be:
--- 5, 4, 7, 2, 1, 6, 3
--- 6, 5, 4, 3, 7, 2, 1
--- 7, 3, 6, 2, 1, 5, 4
--- 2, 1, 7, 5, 4, 6, 3
--- 1, 5, 4, 3, 6, 7, 2
--- 7, 6, 2, 1, 3, 5, 4
--- 3, 5, 4, 7, 2, 1, 6
-
 import Data.List (sort)
 
 type Lotus = [Int]
 type Indices = [Int]
 type Index = Int
 
-data ArcData
-    -- | OpenLeft is the type for arcs that opens to the left
+data ArcType
+    -- | Arcs that curve to the left
     = OpenLeft Index
-    -- | OpenRight is the type for arcs that opens to the right
+    -- | Arcs that curve to the right
     | OpenRight Index
 
 puzzle :: Lotus
@@ -33,30 +19,27 @@ puzzle = [5, 0, 0, 0, 1, 6, 0, -- ring 1
           0, 0, 2, 1, 0, 0, 4, -- ring 6
           0, 0, 4, 0, 0, 1, 0] -- ring 7
 
-solvedPuzzle :: Lotus
-solvedPuzzle = [5, 4, 7, 2, 1, 6, 3,
-                6, 5, 4, 3, 7, 2, 1,
-                7, 3, 6, 2, 1, 5, 4,
-                2, 1, 7, 5, 4, 6, 3,
-                1, 5, 4, 3, 6, 7, 2,
-                7, 6, 2, 1, 3, 5, 4,
-                3, 5, 4, 7, 2, 1, 6]
+solved :: Lotus
+solved = [5, 4, 7, 2, 1, 6, 3,
+          6, 5, 4, 3, 7, 2, 1,
+          7, 3, 6, 2, 1, 5, 4,
+          2, 1, 7, 5, 4, 6, 3,
+          1, 5, 4, 3, 6, 7, 2,
+          7, 6, 2, 1, 3, 5, 4,
+          3, 5, 4, 7, 2, 1, 6]
 
 
 {--------------------------
 -----  ACCESSORS ----------
 --------------------------}
 
--- | The 'getRingIndices' function gets the index numbers of a ring
--- It takes one argument of type Int
--- It returns a list of indices, of type [Int]
-getRingIndices :: Index -> Indices
-getRingIndices startingIndex = [x + 7 * startingIndex | x <- [0..6]]
+-- | Gets the index numbers of a ring
+getRing :: Index -> Indices
+getRing index = [x + 7 * index | x <- [0..6]]
 
--- | The 'getArcIndices' function get the index numbers of an arc
--- It takes one argument of type ArcData
-getArcIndices :: ArcData -> Indices
-getArcIndices (OpenLeft n)
+-- | Gets the index numbers of an arc
+getArc :: ArcType -> Indices
+getArc (OpenLeft n)
     | n == 0 = [0,7,15,22,30,37,45]
     | n == 1 = [1,8,16,23,31,38,46]
     | n == 2 = [2,9,17,24,32,39,47]
@@ -65,7 +48,7 @@ getArcIndices (OpenLeft n)
     | n == 5 = [5,12,20,27,28,35,43]
     | n == 6 = [6,13,14,21,29,36,44]
     | otherwise = []
-getArcIndices (OpenRight n)
+getArc (OpenRight n)
     | n == 0 = [0,13,20,26,33,39,46]
     | n == 1 = [1,7,14,27,34,40,47]
     | n == 2 = [2,8,15,21,28,41,48]
@@ -75,7 +58,7 @@ getArcIndices (OpenRight n)
     | n == 6 = [6,12,19,25,32,38,45]
     | otherwise = []
 
--- get the values from the lotus puzzle based on index of arcs/rings
+-- | Gets the values from the lotus puzzle based on the indices
 getValues :: Indices -> Lotus -> [Int]
 getValues indices lotus = map (lotus !!) indices
 
@@ -84,31 +67,35 @@ getValues indices lotus = map (lotus !!) indices
 --------  CHECKS ----------
 --------------------------}
 
--- check if the values in indices are unique 1 to 7 with complexite O(nlogn)
--- recursive check with elem yields O(n^2)
--- resource from stackoverflow.com/questions/31036474/
+-- | Checks if the values in indices are uniquely 1 to 7
+-- Resource from stackoverflow.com/questions/31036474/
 comparePairwise :: Eq a => [a] -> Bool
-comparePairwise xs = and (zipWith (/=) xs (drop 1 xs))
+comparePairwise indices = and (zipWith (/=) indices (drop 1 indices)) -- has better time complexity than using recursive + elem
 
 allDifferent :: (Ord a, Eq a) => [a] -> Bool
 allDifferent = comparePairwise.sort
 
--- check if the arc/ring has the numbers 1 to 7
+-- | Checks if the arc/ring contains the numbers 1 to 7
 checkArc :: Indices -> Bool
 checkArc indices = all (`elem` [1..7]) indices && allDifferent indices
 
--- check all arcs and rings beginning at the index given
+-- | Checks all arcs and rings containing the given index
 checkAll :: Lotus -> Index -> Bool
-checkAll lotus n = checkArc (getValues (getArcIndices (OpenLeft n)) lotus) &&
-                   checkArc (getValues (getArcIndices (OpenRight n)) lotus) &&
-                   checkArc (getValues (getRingIndices n) lotus)
+checkAll lotus index = checkArc (getValues (getArc (OpenLeft index)) lotus) &&
+                       checkArc (getValues (getArc (OpenRight index)) lotus) &&
+                       checkArc (getValues (getRing index) lotus)
+
+
+{--------------------------
+--------  SOLVER ----------
+--------------------------}
 
 -- lotusSolver :: [Int] -> [Int]
 -- lotusSolver xs = test
 
 main :: IO()
 main = do
-    print (allDifferent (getValues (getRingIndices 0) solvedPuzzle)) -- expect True
-    print (map (checkAll puzzle) [0..6]) -- expect all false
-    print (map (checkAll solvedPuzzle) [0..6]) -- expect all true
-    print (getValues (getRingIndices 0) puzzle) -- expect [5,0,0,0,1,6,0]
+    print (allDifferent (getValues (getRing 0) solved))    -- expect True
+    print (map (checkAll puzzle) [0..6])                   -- expect all false
+    print (map (checkAll solved) [0..6])                   -- expect all true
+    print (getValues (getRing 0) puzzle)                   -- expect [5,0,0,0,1,6,0]
