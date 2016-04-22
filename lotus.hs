@@ -1,4 +1,5 @@
 import Data.List (sort)
+import Data.List.Split
 
 type Lotus = [Int]
 type Indices = [Int]
@@ -11,7 +12,7 @@ data ArcType
     | OpenRight Index
 
 puzzle :: Lotus
-puzzle = [5, 0, 0, 0, 1, 6, 0, -- ring 1
+puzzle = [5, 0, 7, 0, 1, 6, 0, -- ring 1
           0, 0, 0, 3, 0, 0, 0, -- ring 2
           7, 0, 6, 2, 1, 0, 0, -- ring 3
           0, 1, 7, 0, 0, 6, 0, -- ring 4
@@ -90,8 +91,34 @@ checkAll lotus index = checkArc (getValues (getArc (OpenLeft index)) lotus) &&
 --------  SOLVER ----------
 --------------------------}
 
+-- | Finds the next black in the puzzle starting from index
+findBlank :: Index -> Lotus -> Index
+findBlank index lotus
+    | index == 48 = 48                              -- 48 is the last index of the lotus
+    | lotus !! (index + 1) == 0 = index + 1         -- next index is black
+    | otherwise = findBlank (index + 1) lotus       -- recurse
+
+-- | Create a new lotus with the new value inserted at index given
+insertValue :: Int -> Index -> Lotus -> Lotus
+insertValue value index lotus = take index lotus ++ [value] ++ drop (index + 1) lotus
+
+
 -- lotusSolver :: [Int] -> [Int]
 -- lotusSolver xs = test
+
+
+{--------------------------
+-------  HELPERS ----------
+--------------------------}
+
+-- | Print a readable lotus to console
+printLotus :: (Show e) => [e] -> String
+printLotus lotus = unlines (map show (chunksOf 7 lotus))
+
+
+{--------------------------
+---------- MAIN -----------
+--------------------------}
 
 main :: IO()
 main = do
@@ -99,3 +126,5 @@ main = do
     print (map (checkAll puzzle) [0..6])                   -- expect all false
     print (map (checkAll solved) [0..6])                   -- expect all true
     print (getValues (getRing 0) puzzle)                   -- expect [5,0,0,0,1,6,0]
+    print (findBlank 0 puzzle)                             -- expect 3
+    putStrLn $ printLotus (insertValue 4 1 puzzle)         -- expect 4 at second position
