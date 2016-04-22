@@ -68,11 +68,13 @@ getValues indices lotus = map (lotus !!) indices
 --------  CHECKS ----------
 --------------------------}
 
--- | Checks if the values in indices are uniquely 1 to 7
+-- | Compares indices in the list in pairs
 -- Resource from stackoverflow.com/questions/31036474/
 comparePairwise :: Eq a => [a] -> Bool
 comparePairwise indices = and (zipWith (/=) indices (drop 1 indices)) -- has better time complexity than using recursive + elem
 
+-- | Checks if the values in indices are uniquely 1 to 7 using comparePairwise
+-- Resource from stackoverflow.com/questions/31036474/
 allDifferent :: (Ord a, Eq a) => [a] -> Bool
 allDifferent = comparePairwise.sort
 
