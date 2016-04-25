@@ -118,6 +118,7 @@ possibleValues p l = [1..7] \\ (ring ++ leftArc ++ rightArc)
           leftArc = getValues (getArc (OpenLeft p)) l
           rightArc = getValues (getArc (OpenRight p)) l
 
+-- | Solves the lotus puzzle using recursion (i.e. brute force method)
 solve :: Index -> Lotus -> Solns -> Lotus
 solve _ _ [] = []
 solve 48 l _ = l
@@ -125,6 +126,7 @@ solve p l (x:_)
     | l !! p == 0 = trySoln x p l
     | otherwise = solve (findBlank p l) l (possibleValues (findBlank p l) l)
 
+-- | Final solve method to tie the rest together
 lotusSolver :: [Int] -> [Int]
 lotusSolver l = solve 0 l (possibleValues 0 l)
 
@@ -143,13 +145,13 @@ printLotus l = unlines (map show (chunksOf 7 l))
 --------------------------}
 
 main :: IO()
-main = 
+main =
     -- print $ allDifferent (getValues (getRing 0) solved)    -- expect True
     -- print $ map (checkAll puzzle) [0..6]                   -- expect all false
     -- print $ map (checkAll solved) [0..6]                   -- expect all true
     -- print $ getValues (getRing 0) puzzle                   -- expect [5,0,0,0,1,6,0]
     -- print $ findBlank 0 puzzle                             -- expect 3
-    -- putStrLn $ printLotus (trySoln 4 1 puzzle)         -- expect 4 at second position
+    -- putStrLn $ printLotus (trySoln 4 1 puzzle)             -- expect 4 at second position
     -- putStrLn $ printLotus (lotusSolver puzzle)
     -- print $ possibleValues 1 puzzle
     -- print $ possibleValues 0 puzzle
