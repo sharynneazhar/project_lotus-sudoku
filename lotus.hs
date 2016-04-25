@@ -100,15 +100,15 @@ checkAll l p = checkValues (getValues (getArc (OpenLeft p)) l) &&
 --------------------------}
 
 -- | Finds the next black in the puzzle starting from index
-findNext :: Index -> Lotus -> Index
-findNext p l
+findBlank :: Index -> Lotus -> Index
+findBlank p l
     | p == 48 = 48
     | l !! (p + 1) == 0 = p + 1
-    | otherwise = findNext (p + 1) l
+    | otherwise = findBlank (p + 1) l
 
 -- | Creates a new lotus with the new value inserted at index given
-insertValue :: Int -> Index -> Lotus -> Lotus
-insertValue v p l = take p l ++ [v] ++ drop (p + 1) l
+trySoln :: Int -> Index -> Lotus -> Lotus
+trySoln v p l = take p l ++ [v] ++ drop (p + 1) l
 
 -- | Lists all the possible values that can be a solution to a particular ring/arc
 -- Possibilities are any values [1,7] that are not in the ring/arc containing the index
@@ -119,7 +119,14 @@ possibleValues p l = [1..7] \\ (ring ++ leftArc ++ rightArc)
           rightArc = getValues (getArc (OpenRight p)) l
 
 solve :: Index -> Lotus -> Solns -> Lotus
-solve p l (x:xs) = undefined
+solve _ _ [] = []
+solve 48 l _ = l
+solve p l (x:_)
+    | l !! p == 0 = trySoln x p l
+    | otherwise = solve (findBlank p l) l (possibleValues (findBlank p l) l)
+
+lotusSolver :: [Int] -> [Int]
+lotusSolver l = solve 0 l (possibleValues 0 l)
 
 
 {--------------------------
@@ -136,14 +143,14 @@ printLotus l = unlines (map show (chunksOf 7 l))
 --------------------------}
 
 main :: IO()
-main = do
+main = 
     -- print $ allDifferent (getValues (getRing 0) solved)    -- expect True
     -- print $ map (checkAll puzzle) [0..6]                   -- expect all false
     -- print $ map (checkAll solved) [0..6]                   -- expect all true
     -- print $ getValues (getRing 0) puzzle                   -- expect [5,0,0,0,1,6,0]
-    -- print $ findNext 0 puzzle                             -- expect 3
-    -- putStrLn $ printLotus (insertValue 4 1 puzzle)         -- expect 4 at second position
+    -- print $ findBlank 0 puzzle                             -- expect 3
+    -- putStrLn $ printLotus (trySoln 4 1 puzzle)         -- expect 4 at second position
     -- putStrLn $ printLotus (lotusSolver puzzle)
-    print $ possibleValues 1 puzzle
-    print $ possibleValues 3 puzzle
-    print $ printLotus $ lotusSolver puzzle
+    -- print $ possibleValues 1 puzzle
+    -- print $ possibleValues 0 puzzle
+    putStrLn $ printLotus $ lotusSolver puzzle
