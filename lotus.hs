@@ -1,4 +1,9 @@
-import Data.List (sort)
+--
+-- Copyright (c) 2016 Sharynne Azhar - https://github.com/sharynneazhar/
+-- Last update: 04/25/2016
+--
+
+import Data.List
 import Data.List.Split
 
 type Lotus = [Int]
@@ -71,7 +76,7 @@ getValues indices lotus = map (lotus !!) indices
 -- | Compares indices in the list in pairs
 -- Resource from stackoverflow.com/questions/31036474/
 comparePairwise :: Eq a => [a] -> Bool
-comparePairwise indices = and (zipWith (/=) indices (drop 1 indices)) -- has better time complexity than using recursive + elem
+comparePairwise indices = and (zipWith (/=) indices (drop 1 indices))
 
 -- | Checks if the values in indices are uniquely 1 to 7 using comparePairwise
 -- Resource from stackoverflow.com/questions/31036474/
@@ -79,15 +84,14 @@ allDifferent :: (Ord a, Eq a) => [a] -> Bool
 allDifferent = comparePairwise.sort
 
 -- | Checks if the arc/ring contains the numbers 1 to 7
-checkArc :: Indices -> Bool
-checkArc indices = all (`elem` [1..7]) indices && allDifferent indices
+checkValues :: Indices -> Bool
+checkValues indices = all (`elem` [1..7]) indices && allDifferent indices
 
 -- | Checks all arcs and rings containing the given index
 checkAll :: Lotus -> Index -> Bool
-checkAll lotus index = checkArc (getValues (getArc (OpenLeft index)) lotus) &&
-                       checkArc (getValues (getArc (OpenRight index)) lotus) &&
-                       checkArc (getValues (getRing index) lotus)
-
+checkAll lotus index = checkValues (getValues (getArc (OpenLeft index)) lotus) &&
+                       checkValues (getValues (getArc (OpenRight index)) lotus) &&
+                       checkValues (getValues (getRing index) lotus)
 
 {--------------------------
 --------  SOLVER ----------
@@ -96,24 +100,31 @@ checkAll lotus index = checkArc (getValues (getArc (OpenLeft index)) lotus) &&
 -- | Finds the next black in the puzzle starting from index
 findBlank :: Index -> Lotus -> Index
 findBlank index lotus
-    | index == 48 = 48                              -- 48 is the last index of the lotus
-    | lotus !! (index + 1) == 0 = index + 1         -- next index is black
-    | otherwise = findBlank (index + 1) lotus       -- recurse
+    | index == 48 = 48
+    | lotus !! (index + 1) == 0 = index + 1
+    | otherwise = findBlank (index + 1) lotus
 
--- | Create a new lotus with the new value inserted at index given
+-- | Creates a new lotus with the new value inserted at index given
 insertValue :: Int -> Index -> Lotus -> Lotus
 insertValue value index lotus = take index lotus ++ [value] ++ drop (index + 1) lotus
 
+-- | Lists all the possible values that can be a solution to a particular ring/arc
+-- Possibilities are any values [1,7] that are not in the ring/arc
+possibleValues :: Indices -> Lotus -> [Int]
+possibleValues indices lotus = [1..7] \\ (ring ++ leftArc ++ rightArc)
+    where ring = undefined
+          leftArc = undefined
+          rightArc = undefined
 
--- lotusSolver :: [Int] -> [Int]
--- lotusSolver xs = test
 
+lotusSolver :: [Int] -> [Int]
+lotusSolver lotus = lotus
 
 {--------------------------
 -------  HELPERS ----------
 --------------------------}
 
--- | Print a readable lotus to console
+-- | Print a readable lotus in matrix form to console
 printLotus :: (Show e) => [e] -> String
 printLotus lotus = unlines (map show (chunksOf 7 lotus))
 
@@ -123,10 +134,11 @@ printLotus lotus = unlines (map show (chunksOf 7 lotus))
 --------------------------}
 
 main :: IO()
-main = do
-    print (allDifferent (getValues (getRing 0) solved))    -- expect True
-    print (map (checkAll puzzle) [0..6])                   -- expect all false
-    print (map (checkAll solved) [0..6])                   -- expect all true
-    print (getValues (getRing 0) puzzle)                   -- expect [5,0,0,0,1,6,0]
-    print (findBlank 0 puzzle)                             -- expect 3
-    putStrLn $ printLotus (insertValue 4 1 puzzle)         -- expect 4 at second position
+main =
+    -- print (allDifferent (getValues (getRing 0) solved))    -- expect True
+    -- print (map (checkAll puzzle) [0..6])                   -- expect all false
+    -- print (map (checkAll solved) [0..6])                   -- expect all true
+    -- print (getValues (getRing 0) puzzle)                   -- expect [5,0,0,0,1,6,0]
+    -- print (findBlank 0 puzzle)                             -- expect 3
+    -- putStrLn $ printLotus (insertValue 4 1 puzzle)         -- expect 4 at second position
+    putStrLn $ printLotus (lotusSolver puzzle)
