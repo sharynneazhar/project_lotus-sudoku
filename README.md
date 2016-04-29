@@ -19,7 +19,7 @@ With limited knowledge of Haskell, there was no easy and aesthetically pleasing 
 ###### Solver
 The general approach to solving the Lotus via brute force backtracking is to generate a list of all the possible values that can be in a particular position. The possibilities are values [1,7] that are not in the same ring, left-opening arc, and right-opening arc that contain that position.
 
-The conditions for a particular index is:
+The conditions for a particular index are:
 * if index > 48 then return empty list
 * if index == 0 then return [1,7] not in ring/arcs
 * else return back the value
