@@ -1,143 +1,121 @@
 --
--- Copyright (c) 2016 Sharynne Azhar - https://github.com/sharynneazhar/
--- Last update: 04/25/2016
+-- Created by Sharynne Azhar - https://github.com/sharynneazhar/
+-- Last update: 04/29/2016
 --
 
 import Data.List
 import Data.List.Split
+import Data.Maybe (fromMaybe)
+import qualified Data.Map as Map
 
-type Lotus = [Int]      -- variable l
-type Indices = [Int]    -- variable ps
-type Index = Int        -- variable p
-type Solns = [Int]      -- variable xs
-
-data ArcType
-    -- | Arcs that curve to the left
-    = OpenLeft Index
-    -- | Arcs that curve to the right
-    | OpenRight Index
-
-puzzle :: Lotus
-puzzle = [5, 0, 7, 0, 1, 6, 0, -- ring 1
-          0, 0, 0, 3, 0, 0, 0, -- ring 2
-          7, 0, 6, 2, 1, 0, 0, -- ring 3
-          0, 1, 7, 0, 0, 6, 0, -- ring 4
-          0, 5, 0, 3, 6, 7, 2, -- ring 5
-          0, 0, 2, 1, 0, 0, 4, -- ring 6
-          0, 0, 4, 0, 0, 1, 0] -- ring 7
-
-solved :: Lotus
-solved = [5, 4, 7, 2, 1, 6, 3,
-          6, 5, 4, 3, 7, 2, 1,
-          7, 3, 6, 2, 1, 5, 4,
-          2, 1, 7, 5, 4, 6, 3,
-          1, 5, 4, 3, 6, 7, 2,
-          7, 6, 2, 1, 3, 5, 4,
-          3, 5, 4, 7, 2, 1, 6]
+type Lotus = [Int]
+type Solns = [Int]
+type Indices = [Int]
+type Index = Int
 
 
 {--------------------------
 -----  ACCESSORS ----------
 --------------------------}
 
--- | Gets the index numbers of a ring
-getRing :: Index -> Indices
-getRing p = [x + 7 * p | x <- [0..6]]
+-- | A list of a list of indices for each left opening arc
+leftArcs :: [Indices]
+leftArcs = [[0,7,15,22,30,37,45],[1,8,16,23,31,38,46],[2,9,17,24,32,39,47],
+            [3,10,18,25,33,40,48],[4,11,19,26,34,41,42],[5,12,20,27,28,35,43],
+            [6,13,14,21,29,36,44]]
 
--- | Gets the index numbers of an arc
-getArc :: ArcType -> Indices
-getArc (OpenLeft p)
-    | p == 0 = [0,7,15,22,30,37,45]
-    | p == 1 = [1,8,16,23,31,38,46]
-    | p == 2 = [2,9,17,24,32,39,47]
-    | p == 3 = [3,10,18,25,33,40,48]
-    | p == 4 = [4,11,19,26,34,41,42]
-    | p == 5 = [5,12,20,27,28,35,43]
-    | p == 6 = [6,13,14,21,29,36,44]
-    | otherwise = []
-getArc (OpenRight p)
-    | p == 0 = [0,13,20,26,33,39,46]
-    | p == 1 = [1,7,14,27,34,40,47]
-    | p == 2 = [2,8,15,21,28,41,48]
-    | p == 3 = [3,9,16,22,29,35,42]
-    | p == 4 = [4,10,17,23,30,36,43]
-    | p == 5 = [5,11,18,24,31,37,44]
-    | p == 6 = [6,12,19,25,32,38,45]
-    | otherwise = []
+-- | A list of indices for each right opening arc
+rightArcs :: [Indices]
+rightArcs = [[0,13,20,26,33,39,46],[1,7,14,27,34,40,47],[2,8,15,21,28,41,48],
+             [3,9,16,22,29,35,42],[4,10,17,23,30,36,43], [5,11,18,24,31,37,44],
+             [6,12,19,25,32,38,45]]
 
--- | Gets the values from the lotus puzzle based on the indices
+-- | Finds and returns the list of indices containing that index value
+-- Resource/Discussion at http://stackoverflow.com/questions/36878340/
+getIndices :: (Ord a) => [[a]] -> a -> [a]
+getIndices lst ind = fromMaybe [] (Map.lookup ind listOfIndices)
+    where listOfIndices = Map.fromList mappedIndices
+          mappedIndices = concatMap (\x -> zip x (repeat x)) lst
+
+-- | Returns the index numbers of an arc/ring
+getArcRings :: Index -> Indices
+getArcRings ind = getRing ind ++ getIndices leftArcs ind ++ getIndices rightArcs ind
+    where getRing n = [x..x + 6] where x = 7 * div n 7
+
+-- | Returns the values from the lotus puzzle based on the indices
 getValues :: Indices -> Lotus -> [Int]
-getValues ps l = map (l !!) ps
-
-
-{--------------------------
---------  CHECKS ----------
---------------------------}
-
--- | Compares indices in the list in pairs
--- Resource from stackoverflow.com/questions/31036474/
-comparePairwise :: Eq a => [a] -> Bool
-comparePairwise ps = and (zipWith (/=) ps (drop 1 ps))
-
--- | Checks if the values in indices are uniquely 1 to 7 using comparePairwise
--- Resource from stackoverflow.com/questions/31036474/
-allDifferent :: (Ord a, Eq a) => [a] -> Bool
-allDifferent = comparePairwise.sort
-
--- | Checks if the arc/ring contains the numbers 1 to 7
-checkValues :: Indices -> Bool
-checkValues ps = all (`elem` [1..7]) ps && allDifferent ps
-
--- | Checks all arcs and rings containing the given index
-checkAll :: Lotus -> Index -> Bool
-checkAll l p = checkValues (getValues (getArc (OpenLeft p)) l) &&
-               checkValues (getValues (getArc (OpenRight p)) l) &&
-               checkValues (getValues (getRing p) l)
+getValues lts = map (lts !!)
 
 
 {--------------------------
 --------  SOLVER ----------
 --------------------------}
 
--- | Finds the next black in the puzzle starting from index
-findBlank :: Index -> Lotus -> Index
-findBlank p l
-    | p == 48 = 48
-    | l !! (p + 1) == 0 = p + 1
-    | otherwise = findBlank (p + 1) l
-
 -- | Creates a new lotus with the new value inserted at index given
-trySoln :: Int -> Index -> Lotus -> Lotus
-trySoln v p l = take p l ++ [v] ++ drop (p + 1) l
+returnBoard :: Int -> Index -> Lotus -> Lotus
+returnBoard val ind lts = take ind lts ++ [val] ++ drop (ind + 1) lts
 
 -- | Lists all the possible values that can be a solution to a particular ring/arc
--- Possibilities are any values [1,7] that are not in the ring/arc containing the index
-possibleValues :: Index -> Lotus -> Solns
-possibleValues p l = [1..7] \\ (ring ++ leftArc ++ rightArc)
-    where ring = getValues (getRing p) l
-          leftArc = getValues (getArc (OpenLeft p)) l
-          rightArc = getValues (getArc (OpenRight p)) l
+possibleSolns :: Index -> Lotus -> Solns
+possibleSolns ind lts
+    | ind > 48 = []
+    | lts !! ind == 0 = [1..7] \\ arcRingIndices ind
+    | otherwise = [lts !! ind]
+    where arcRingIndices n = getValues lts (getArcRings n)
 
 -- | Solves the lotus puzzle using recursion (i.e. brute force method)
-solve :: Index -> Lotus -> Solns -> Lotus
-solve _ _ [] = []
-solve 48 l _ = l
-solve p l (x:_)
-    | l !! p == 0 = trySoln x p l
-    | otherwise = solve (findBlank p l) l (possibleValues (findBlank p l) l)
+doSolve :: Index -> Solns -> Lotus -> Lotus
+doSolve 48 [x] lts = returnBoard x 48 lts
+doSolve 48 [] _ = []
+doSolve 48 _ _ = []
+doSolve _  [] _ = []
+doSolve ind (x:xs) lts
+    | null solvedNext = doSolve ind xs lts
+    | otherwise = solvedNext
+    where recurseNext n s = doSolve (n + 1) (possibleSolns (n + 1) s) s
+          solvedNext = recurseNext ind (returnBoard x ind lts)
 
--- | Final solve method to tie the rest together
+-- | Higher order solve method to tie the rest together
 lotusSolver :: [Int] -> [Int]
-lotusSolver l = solve 0 l (possibleValues 0 l)
+lotusSolver lts = doSolve 0 (possibleSolns 0 lts) lts
 
 
 {--------------------------
--------  HELPERS ----------
+-----  HELPERS/TESTS ------
 --------------------------}
 
--- | Print a readable lotus in matrix form to console
+-- | Prints a readable lotus in matrix form to console
+-- Resource from http://stackoverflow.com/questions/12791400
 printLotus :: (Show e) => [e] -> String
-printLotus l = unlines (map show (chunksOf 7 l))
+printLotus lts = if null lts then "\nNo solution\n"
+                 else "\n" ++ unlines (map show (chunksOf 7 lts))
+
+-- | Checks if the arc/ring contains the numbers 1 to 7
+-- Resource from stackoverflow.com/questions/31036474/
+checkValues :: Indices -> Bool
+checkValues ind = all (`elem` [1..7]) ind && allDifferent ind
+    where allDifferent = comparePairwise.sort
+          comparePairwise n = and (zipWith (/=) n (drop 1 n))
+
+-- | Checks all arcs and rings containing the given index
+checkAll :: Lotus -> Index -> Bool
+checkAll lts ind = all func [getIndices leftArcs ind, getIndices rightArcs ind, getRing ind]
+                   where getRing n = [x..x + 6] where x = 7 * div n 7
+                         func n = checkValues (getValues lts n)
+
+runTest :: String -> Lotus -> String
+runTest name lts = do
+    let solvedLotus = lotusSolver lts
+    if all (checkAll solvedLotus) [0..48] then show name ++ " passed!"
+    else "### " ++ show name ++ " failed! ###"
+
+runFailedTest :: String -> Lotus -> String
+runFailedTest name lts
+    | null solvedLotus = printSuccess
+    | not (all (checkAll solvedLotus) [0..48]) = printSuccess
+    | otherwise = "### " ++ show name ++ " failed! ###"
+    where solvedLotus = lotusSolver lts
+          printSuccess = show name ++ " passed!"
 
 
 {--------------------------
@@ -145,14 +123,52 @@ printLotus l = unlines (map show (chunksOf 7 l))
 --------------------------}
 
 main :: IO()
-main =
-    -- print $ allDifferent (getValues (getRing 0) solved)    -- expect True
-    -- print $ map (checkAll puzzle) [0..6]                   -- expect all false
-    -- print $ map (checkAll solved) [0..6]                   -- expect all true
-    -- print $ getValues (getRing 0) puzzle                   -- expect [5,0,0,0,1,6,0]
-    -- print $ findBlank 0 puzzle                             -- expect 3
-    -- putStrLn $ printLotus (trySoln 4 1 puzzle)             -- expect 4 at second position
-    -- putStrLn $ printLotus (lotusSolver puzzle)
-    -- print $ possibleValues 1 puzzle
-    -- print $ possibleValues 0 puzzle
-    putStrLn $ printLotus $ lotusSolver puzzle
+main = do
+    putStrLn "\nTestA\n===================="
+    putStrLn $ "Before:" ++ printLotus testA
+    putStrLn $ "After:" ++ printLotus (lotusSolver testA)
+    putStrLn $ "Check: " ++ runTest "testA" testA
+    putStrLn "\nSuccess Cases\n===================="
+    putStrLn $ runTest "testB" testB
+    putStrLn $ runTest "testC" testC
+    putStrLn $ runTest "testD" testD
+    putStrLn $ runTest "testE" testE
+    putStrLn "\n\nFailed Cases\n===================="
+    putStrLn $ runFailedTest "testF" testF
+    putStrLn $ runFailedTest "testG" testG
+
+
+{--------------------------
+--- EXAMPLES PUZZLES ------
+--------------------------}
+
+-- Success Tests
+testA :: Lotus
+testA = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,0,0,0,3,0,0,0,0,0,0,
+         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0]
+
+testB :: Lotus
+testB = [4,1,2,3,6,0,0,0,0,0,0,1,0,0,0,1,7,4,0,0,2,0,0,0,0,1,0,
+         5,3,0,0,4,0,0,0,0,7,0,0,0,0,0,0,1,2,0,0,0,0]
+
+testC :: Lotus
+testC = [0,1,0,7,6,0,0,4,0,0,1,0,0,0,0,0,6,0,0,5,0,0,0,0,0,0,0,
+         5,0,0,0,0,0,2,0,2,0,0,0,0,0,0,0,4,0,0,0,0,0]
+
+testD :: Lotus
+testD = [4,0,5,3,0,1,7,1,7,0,0,0,0,0,0,0,6,0,0,5,2,1,2,3,0,0,0,
+         5,6,0,7,4,0,1,3,0,0,0,0,0,0,0,1,4,0,6,0,7,0]
+
+testE :: Lotus
+testE = [5,0,0,0,1,6,0,0,0,0,3,0,0,0,7,0,6,2,1,0,0,0,1,7,0,0,6,
+         0,0,5,0,3,6,7,2,0,0,2,1,0,0,4,0,0,4,0,0,1,0]
+
+
+-- Fail Tests
+testF :: Lotus
+testF = [4,4,7,2,1,6,3,6,5,4,3,7,2,1,7,3,6,2,1,5,4,2,1,7,5,4,6,3,
+         1,5,4,3,6,7,2,7,6,2,1,3,5,4,3,5,4,7,2,1,6]
+
+testG :: Lotus
+testG = [5,0,0,0,1,6,0,0,5,5,3,0,0,0,7,0,6,2,1,0,0,0,1,7,0,0,6,
+         0,0,5,0,3,6,7,2,0,0,2,1,0,0,4,0,0,4,0,0,1,0]
