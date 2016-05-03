@@ -46,6 +46,6 @@ lotusSolver lts = doSolve 0 (possibleSolns 0 lts) lts
 ```
 
 #### Notes
-* Initial implementations of getRing and getArc used the 'elem' method. This was undesirable since 'elem' has a complexity of O(N). Current mapping is a faster implementation - O(logN) - since it does not have to traverse the list using 'elem'. Mapping works similar to a hash table, but map is implemented as a binary search tree. Note to self: "map" is a life-saver function
+* Initial implementations of getRing and getArc used the 'elem' method. This was undesirable since 'elem' has a complexity of O(N). Current mapping is a faster implementation - O(logN) - since it does not have to traverse the list using 'elem'. Mapping works similar to a hash table, but map is implemented as a binary search tree. Note to self: "map" is a life-saver function!
 * A value constructor was created initially to represent the differences between the left opening arc from the right opening arc. However, this was unnecessary because the only difference between them was the list of indices that get passed in. It became much more concise and less confusing without it.
 * Haskell is very adamant with its lazy evaluation which affects the order of guards and pattern matching!

@@ -1,7 +1,11 @@
---
--- Created by Sharynne Azhar - https://github.com/sharynneazhar/
--- Last update: 04/29/2016
---
+-- Name : Lotus Sudoku Solver
+-- Author: Sharynne Azhar
+-- Description : A Haskell-based solver
+-- Updated: 05-02-2016
+
+{-# OPTIONS_HADDOCK prune #-}
+
+module Main where
 
 import Data.List
 import Data.List.Split
@@ -30,20 +34,29 @@ rightArcs = [[0,13,20,26,33,39,46],[1,7,14,27,34,40,47],[2,8,15,21,28,41,48],
              [3,9,16,22,29,35,42],[4,10,17,23,30,36,43], [5,11,18,24,31,37,44],
              [6,12,19,25,32,38,45]]
 
--- | Finds and returns the list of indices containing that index value
--- Resource/Discussion at http://stackoverflow.com/questions/36878340/
-getIndices :: (Ord a) => [[a]] -> a -> [a]
+-- | Finds and returns the list of indices containing that index value.
+-- It generates mapping to a list of tuples containing the index and the list containing
+-- that index. For example, (34,[2,9,17,24,32,39,47]). Then, using the index as a map
+-- key, the finds and returns the list of indices.
+--
+-- Resource at http://stackoverflow.com/questions/36878340/
+getIndices :: (Ord a) => [[a]]  -- ^ a list containing a list of indices
+           -> a                 -- ^ the current index position
+           -> [a]               -- ^ the list of indices containing that index position
 getIndices lst ind = fromMaybe [] (Map.lookup ind listOfIndices)
     where listOfIndices = Map.fromList mappedIndices
           mappedIndices = concatMap (\x -> zip x (repeat x)) lst
 
--- | Returns the index numbers of an arc/ring
-getArcRings :: Index -> Indices
+-- | Concatenates list of the arc and ring indices containing the current index and returns it.
+getArcRings :: Index    -- ^ the current index position
+            -> Indices  -- ^ the list of of indices in the arcs and ring containing that index
 getArcRings ind = getRing ind ++ getIndices leftArcs ind ++ getIndices rightArcs ind
     where getRing n = [x..x + 6] where x = 7 * div n 7
 
 -- | Returns the values from the lotus puzzle based on the indices
-getValues :: Indices -> Lotus -> [Int]
+getValues :: Indices    -- ^ a list of indices
+          -> Lotus      -- ^ the lotus puzzle
+          -> [Int]      -- ^ a list of corresponding values at each index given
 getValues lts = map (lts !!)
 
 
@@ -52,19 +65,30 @@ getValues lts = map (lts !!)
 --------------------------}
 
 -- | Creates a new lotus with the new value inserted at index given
-returnBoard :: Int -> Index -> Lotus -> Lotus
+returnBoard :: Int      -- ^ a value to insert/replace
+            -> Index    -- ^ index where the value should be inserted/replaced
+            -> Lotus    -- ^ the lotus puzzle
+            -> Lotus    -- ^ a new lotus containing the new value
 returnBoard val ind lts = take ind lts ++ [val] ++ drop (ind + 1) lts
 
--- | Lists all the possible values that can be a solution to a particular ring/arc
-possibleSolns :: Index -> Lotus -> Solns
+-- | Lists all the possible values that can be a solution to a particular ring/arc.
+possibleSolns :: Index  -- ^ the current index
+              -> Lotus  -- ^ the lotus puzzle
+              -> Solns  -- ^ a list of possible solutions that can be at the current index
 possibleSolns ind lts
     | ind > 48 = []
     | lts !! ind == 0 = [1..7] \\ arcRingIndices ind
     | otherwise = [lts !! ind]
     where arcRingIndices n = getValues lts (getArcRings n)
 
--- | Solves the lotus puzzle using recursion (i.e. brute force method)
-doSolve :: Index -> Solns -> Lotus -> Lotus
+-- | Solves the lotus puzzle using recursion (i.e. brute force method).
+-- For every nonzero position in the Lotus, the solver tries all the possible
+-- values until the Lotus is complete. An unsolvable lotus puzzle will return
+-- an empty list.
+doSolve :: Index   -- ^ the current index
+        -> Solns   -- ^ the list of possible solutions
+        -> Lotus   -- ^ the lotus puzzle
+        -> Lotus   -- ^ the solved (or empty) lotus puzzle
 doSolve 48 [x] lts = returnBoard x 48 lts
 doSolve 48 [] _ = []
 doSolve 48 _ _ = []
@@ -76,7 +100,8 @@ doSolve ind (x:xs) lts
           solvedNext = recurseNext ind (returnBoard x ind lts)
 
 -- | Higher order solve method to tie the rest together
-lotusSolver :: [Int] -> [Int]
+lotusSolver :: [Int]  -- ^ the unsolved lotus puzze
+            -> [Int]  -- ^ a solved puzzle
 lotusSolver lts = doSolve 0 (possibleSolns 0 lts) lts
 
 
@@ -85,31 +110,46 @@ lotusSolver lts = doSolve 0 (possibleSolns 0 lts) lts
 --------------------------}
 
 -- | Prints a readable lotus in matrix form to console
+--
 -- Resource from http://stackoverflow.com/questions/12791400
-printLotus :: (Show e) => [e] -> String
+printLotus :: (Show e) => [e]   -- ^ the lotus puzzle
+           -> String            -- ^ an aesthetically pleasing lotus
 printLotus lts = if null lts then "\nNo solution\n"
                  else "\n" ++ unlines (map show (chunksOf 7 lts))
 
--- | Checks if the arc/ring contains the numbers 1 to 7
--- Resource from stackoverflow.com/questions/31036474/
-checkValues :: Indices -> Bool
+-- | Checks if the arc/ring contains the numbers 1 to 7.
+-- Verifies that each value in the list of indices is between 1 to 7 and that no
+-- value is repeated. To increase the efficiency, the list was first sorted and then
+-- each element was compared pairwise with the rest of the list.
+--
+-- Resource from http://stackoverflow.com/questions/31036474/
+checkValues :: Indices  -- ^ the list of indices to check
+            -> Bool     -- ^ true if the list contains values 1 to 7 with no repeats
 checkValues ind = all (`elem` [1..7]) ind && allDifferent ind
     where allDifferent = comparePairwise.sort
           comparePairwise n = and (zipWith (/=) n (drop 1 n))
 
--- | Checks all arcs and rings containing the given index
-checkAll :: Lotus -> Index -> Bool
+-- | Checks all the arcs and the ring containing the given index
+checkAll :: Lotus   -- ^ the lotus puzzle
+         -> Index   -- ^ the current index
+         -> Bool    -- ^ true if all conditions of a complete lotus are satisfied
 checkAll lts ind = all func [getIndices leftArcs ind, getIndices rightArcs ind, getRing ind]
                    where getRing n = [x..x + 6] where x = 7 * div n 7
                          func n = checkValues (getValues lts n)
 
-runTest :: String -> Lotus -> String
+-- | Tests solvable puzzles
+runTest :: String   -- ^ name of the test
+        -> Lotus    -- ^ the lotus puzzle
+        -> String   -- ^ success or failed text
 runTest name lts = do
     let solvedLotus = lotusSolver lts
     if all (checkAll solvedLotus) [0..48] then show name ++ " passed!"
     else "### " ++ show name ++ " failed! ###"
 
-runFailedTest :: String -> Lotus -> String
+-- | Tests unsolvable puzzles
+runFailedTest :: String   -- ^ name of the test
+              -> Lotus    -- ^ the lotus puzzle
+              -> String   -- ^ success or failed text
 runFailedTest name lts
     | null solvedLotus = printSuccess
     | not (all (checkAll solvedLotus) [0..48]) = printSuccess
