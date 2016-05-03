@@ -6,3 +6,5 @@ Setup.hs
 dist/
 *.JPG
 lotus.txt
+documentation.pdf
+lotusSolver.pdf
